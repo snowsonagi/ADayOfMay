@@ -472,6 +472,14 @@
       <button class="btn btn-primary btn-sm" onclick="openAddCouponManual()">+ 할인권 추가/차감</button>
     </div>
     <div id="coupon-list"></div>
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">50% 할인권 직접 추가</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input type="date" id="quick-receive-date" class="form-control" style="flex:1;font-size:16px;">
+        <input type="text" id="quick-receive-memo" class="form-control" placeholder="메모 (선택)" style="flex:1;font-size:16px;">
+        <button class="btn btn-primary btn-sm" onclick="quickReceiveCoupon()" style="white-space:nowrap;flex-shrink:0;">+ 받기</button>
+      </div>
+    </div>
     <div style="margin-top:8px;font-size:11px;color:var(--text3);text-align:center;">재관람 카드 발급 기간: 2026.05.01~06.28</div>
   </div>
 
@@ -673,6 +681,8 @@
         <option value="재관람 카드 50% 할인권">재관람 카드 50% 할인권</option>
         <option value="복지 50%">복지 50%</option>
         <option value="마티네 30%">마티네 30%</option>
+        <option value="타임세일 50%">타임세일 50%</option>
+        <option value="만원의 행복">만원의 행복 (1만원)</option>
       </select>
       <div id="rec-discount-warn" style="display:none;margin-top:6px;font-size:12px;color:var(--danger);">⚠ 현재 보유한 쿠폰이 없습니다</div>
     </div>
@@ -2577,7 +2587,9 @@ const DISCOUNT_LABEL = {
   '학생 20%': '학생 20%',
   '재관람 카드 50% 할인권': '재관람 카드 50% 할인권',
   '복지 50%': '복지 50%',
-  '마티네 30%': '마티네 30%'
+  '마티네 30%': '마티네 30%',
+  '타임세일 50%': '타임세일 50%',
+  '만원의 행복': '만원의 행복'
 };
 
 function onDiscountTypeChange() {
@@ -2830,6 +2842,20 @@ function deleteCouponHistoryRow(key, originalIdx) {
   showToast('이력이 삭제되었습니다');
 }
 
+function quickReceiveCoupon() {
+  const date = document.getElementById('quick-receive-date').value;
+  if (!date) { showToast('날짜를 선택해주세요'); return; }
+  const memo = document.getElementById('quick-receive-memo').value.trim();
+  const coupons = getCoupons();
+  if (!coupons['rewatch50']) coupons['rewatch50'] = { count: 0, history: [] };
+  coupons['rewatch50'].history.push({ type:'획득', qty:1, date, comment: memo || '직접 추가' });
+  saveCoupons(coupons);
+  document.getElementById('quick-receive-date').value = localDate();
+  document.getElementById('quick-receive-memo').value = '';
+  renderCoupon();
+  showToast('50% 할인권 1개 추가됐어요');
+}
+
 function openAddCouponManual() {
   document.getElementById('manual-coupon-key').value = 'rewatch50';
   document.querySelector('input[name="manual-coupon-type"][value="획득"]').checked = true;
@@ -2976,6 +3002,8 @@ function init() {
   applyDark(s.darkMode);
   migrateData();
   initCal();
+  const _qrd = document.getElementById('quick-receive-date');
+  if (_qrd) _qrd.value = localDate();
   renderHome();
 
   // 스케줄 자동 fetch (온라인이면 최신, 오프라인이면 캐시)
