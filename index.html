@@ -1987,24 +1987,63 @@ function renderHeatmap() {
     }
   });
   const cls = c => !c ? '' : c >= 5 ? 'v5' : 'v' + c;
-  const C = 14, GAP = 1;
+  const C = 18, GAP = 1;
 
-  let html = '<div style="display:flex;flex-direction:column;gap:16px;align-items:flex-start;">';
-  Object.entries(SEAT_CONFIG).forEach(([zKey, cfg]) => {
-    html += `<div style="display:flex;flex-direction:column;gap:3px;">`;
-    html += `<div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:2px;">${cfg.label}</div>`;
-    Object.entries(cfg.rows).forEach(([rNum, seatCnt]) => {
-      html += `<div style="display:flex;gap:${GAP}px;align-items:center;">`;
-      html += `<div style="width:22px;text-align:right;font-size:9px;color:var(--text3);font-weight:700;flex-shrink:0;padding-right:3px;">${rNum}열</div>`;
-      for (let n = 1; n <= seatCnt; n++) {
-        const k = `${zKey}-${rNum}-${n}`, cnt = seatMap[k]||0, c = cls(cnt);
-        html += `<div class="seat-cell${c?' '+c:''}" style="width:${C}px;height:${C}px;" title="${zKey}구역 ${rNum}열 ${n}번 ${cnt}회"></div>`;
-      }
-      html += '</div>';
-    });
-    html += '</div>';
+  function cell(zone, row, num, hidden) {
+    if (hidden) return `<div style="width:${C}px;height:${C}px;flex-shrink:0;visibility:hidden;"></div>`;
+    const k = `${zone}-${row}-${num}`, cnt = seatMap[k]||0, c = cls(cnt);
+    return `<div class="seat-cell${c?' '+c:''}" style="width:${C}px;height:${C}px;flex-shrink:0;" title="${zone}구역 ${row}열 ${num}번 ${cnt}회"></div>`;
+  }
+
+  function hRow(zone, row, cnt) {
+    let h = `<div style="display:flex;gap:${GAP}px;align-items:center;">`;
+    h += `<div style="width:22px;text-align:right;font-size:9px;color:var(--text3);font-weight:700;flex-shrink:0;padding-right:3px;">${row}열</div>`;
+    for (let n = 1; n <= cnt; n++) h += cell(zone, row, n);
+    return h + '</div>';
+  }
+
+  // B구역: 열(column)이 좌우로 나란히, 번호는 위→아래
+  const bEntries = Object.entries(SEAT_CONFIG.B.rows);
+  const bMax = Math.max(...bEntries.map(([,c])=>c));
+  let bColsHtml = '';
+  bEntries.forEach(([rNum, cnt]) => {
+    bColsHtml += `<div style="display:flex;flex-direction:column;align-items:center;gap:${GAP}px;">`;
+    bColsHtml += `<div style="font-size:9px;color:var(--text3);font-weight:700;margin-bottom:1px;">${rNum}열</div>`;
+    for (let n = 1; n <= bMax; n++) bColsHtml += cell('B', rNum, n, n > cnt);
+    bColsHtml += '</div>';
   });
-  html += '</div>';
+
+  // A구역: 일반 수평 행
+  let aRowsHtml = Object.entries(SEAT_CONFIG.A.rows).map(([r,c])=>hRow('A',r,c)).join(`<div style="height:${GAP}px;"></div>`);
+
+  // C구역: 일반 수평 행
+  let cRowsHtml = Object.entries(SEAT_CONFIG.C.rows).map(([r,c])=>hRow('C',r,c)).join(`<div style="height:${GAP}px;"></div>`);
+
+  const html = `
+<div style="overflow-x:auto;">
+  <div style="display:inline-block;">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:2px;">
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--text3);text-align:center;margin-bottom:3px;">B구역</div>
+        <div style="display:flex;gap:4px;">${bColsHtml}</div>
+      </div>
+    </div>
+    <div style="margin-bottom:8px;">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px;">A구역</div>
+      ${aRowsHtml}
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin:8px 0;">
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+      <div style="font-size:10px;color:var(--text3);white-space:nowrap;">2F</div>
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+    </div>
+    <div>
+      <div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px;">C구역</div>
+      ${cRowsHtml}
+    </div>
+  </div>
+</div>`;
+
   document.getElementById('heatmap').innerHTML = html;
 }
 
